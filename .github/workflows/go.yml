@@ -1,0 +1,89 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+  
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+
+    - name: Build
+      run: go build -v ./...
+
+  test:   
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+
+    - name: Test
+      run: go test -v ./...
+
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write                # 'read' access to repository contents
+      pull-requests: write
+      pages: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+       fetch-depth: 0
+       ref: ${{ github.head_ref }}
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+        
+    - name: generate test coverage
+      run: |
+        go test -v ./... -covermode=count -coverprofile=coverage.out
+        go tool cover -func=coverage.out -o=coverage.out
+
+    - name: Go Coverage Badge  # Pass the `coverage.out` output to this action
+      uses: tj-actions/coverage-badge-go@4cc080a60b13208c3e81ead8b55ec1bd451c336b
+      with:
+        filename: coverage.out
+
+    - name: Verify Changed files
+      uses: tj-actions/verify-changed-files@4616eed12cee617b16fa9d0ef524f883d2a48a48
+      id: verify-changed-files
+      with:
+        files: README.md
+
+    - name: Commit changes
+      if: steps.verify-changed-files.outputs.files_changed == 'true'
+      run: |
+            git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git add README.md
+            git commit -m "chore: Updated coverage badge."
+
+    - name: Push changes
+      if: steps.verify-changed-files.outputs.files_changed == 'true'
+      uses: ad-m/github-push-action@77c5b412c50b723d2a4fbc6d71fb5723bcd439aa
+      with:
+        branch: ${{ github.head_ref }}
