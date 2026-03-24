@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/golang-migrate/migrate/v4"
@@ -14,7 +18,9 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	"github.com/riyadennis/pbac/internal/handler"
+	"github.com/riyadennis/pbac/graph"
+	"github.com/riyadennis/pbac/graph/generated"
+	resthandler "github.com/riyadennis/pbac/internal/handler"
 	"github.com/riyadennis/pbac/internal/repository"
 	"github.com/riyadennis/pbac/internal/service"
 )
@@ -55,7 +61,15 @@ func main() {
 	// Wire up dependencies
 	repo := repository.NewPolicyRepository(pool)
 	svc := service.NewPolicyService(repo)
-	h := handler.NewPolicyHandler(svc)
+	h := resthandler.NewPolicyHandler(svc)
+
+	// GraphQL server
+	gqlSrv := handler.New(generated.NewExecutableSchema(generated.Config{
+		Resolvers: graph.NewResolver(svc),
+	}))
+	gqlSrv.AddTransport(transport.POST{})
+	gqlSrv.AddTransport(transport.GET{})
+	gqlSrv.Use(extension.Introspection{})
 
 	// Setup router
 	r := chi.NewRouter()
@@ -64,8 +78,11 @@ func main() {
 	r.Use(middleware.RequestID)
 
 	r.Mount("/policies", h.Routes())
+	r.Handle("/graphql", gqlSrv)
+	r.Handle("/playground", playground.Handler("pbac", "/graphql"))
 
 	port := os.Getenv("PORT")
+
 	if port == "" {
 		port = "8080"
 	}

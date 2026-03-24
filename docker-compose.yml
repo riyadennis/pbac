@@ -20,11 +20,10 @@ services:
       - DATABASE_URL=postgres://pbac:pbac@postgres:5432/pbac?sslmode=disable
       - MIGRATION_PATH=/home/webuser/migrations
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     links:
       - postgres
-    volumes:
-      - pgdata:/var/lib/postgresql/data
   postgres:
     image: postgres:16-alpine
     environment:

@@ -1,0 +1,49 @@
+scalar Time
+scalar Map
+scalar Any
+
+type Policy {
+  id: ID!
+  name: String!
+  description: String!
+  module: String!
+  content: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input CreatePolicyInput {
+  name: String!
+  description: String!
+  module: String!
+  content: String!
+}
+
+input UpdatePolicyInput {
+  name: String!
+  description: String!
+  module: String!
+  content: String!
+}
+
+input EvaluateInput {
+  input: Map
+  query: String
+}
+
+type EvaluateResult {
+  result: Any
+  allow: Boolean!
+}
+
+type Query {
+  policy(id: ID!): Policy
+  policies: [Policy!]!
+}
+
+type Mutation {
+  createPolicy(input: CreatePolicyInput!): Policy!
+  updatePolicy(id: ID!, input: UpdatePolicyInput!): Policy!
+  deletePolicy(id: ID!): Boolean!
+  evaluatePolicy(id: ID!, input: EvaluateInput!): EvaluateResult!
+}
