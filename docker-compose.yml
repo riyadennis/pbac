@@ -31,9 +31,11 @@ services:
       POSTGRES_USER: pbac
       POSTGRES_PASSWORD: pbac
     ports:
-      - "5432:5432"
+      # Host port 5433 avoids conflict with dashboard/docker-compose.yml which uses 5432.
+      # The pbac service connects internally via postgres:5432 — unaffected by this mapping.
+      - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pbac_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pbac"]
       interval: 5s
@@ -41,4 +43,5 @@ services:
       retries: 5
 
 volumes:
-  pgdata:
+  # Renamed from pgdata to avoid sharing the volume with dashboard/docker-compose.yml.
+  pbac_pgdata:
